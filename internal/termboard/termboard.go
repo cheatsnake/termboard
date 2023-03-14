@@ -4,7 +4,6 @@ type Core struct {
 	OriginText     string
 	Input          []rune
 	CursorPosition int
-	Lang           string
 }
 
 func New(text string) *Core {
@@ -12,7 +11,6 @@ func New(text string) *Core {
 		OriginText:     text,
 		CursorPosition: 0,
 		Input:          make([]rune, 0, len(text)),
-		Lang:           "en",
 	}
 
 	return &c
@@ -51,5 +49,5 @@ func (c *Core) Refresh(origin string) {
 }
 
 func (c *Core) Validate() bool {
-	return string(c.Input) == c.OriginText
+	return (len(c.Input) == len(c.OriginText)) && string(c.Input) == c.OriginText
 }
