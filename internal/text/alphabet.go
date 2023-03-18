@@ -4,16 +4,16 @@ import "strings"
 
 const (
 	englishLetters = "abcdefghijklmnopqrstuvwxyz"
-	russianLetters = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
-	numbers        = "0123456789"
-	symbols        = "!@#$%&?-+=~(){}[]., "
+	// russianLetters = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
+	numbers = "0123456789"
+	symbols = "!@#$%&?-+=~(){}[]., "
 )
 
 // Alphabet return a slice of charactes for given language
 func Alphabet(lang string) []rune {
 	switch lang {
-	case "ru":
-		return generate(russianLetters)
+	// case "ru":
+	// 	return generate(russianLetters)
 	default:
 		return generate(englishLetters)
 	}

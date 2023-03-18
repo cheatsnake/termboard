@@ -3,12 +3,13 @@ package terminal
 import "github.com/gdamore/tcell/v2"
 
 const (
-	defaultWords = 5
-	defaultLang  = "en"
+	defaultWords  int     = 5
+	defaultLang   string  = "en"
+	avgWordLength float64 = 4.7
 )
 
 const (
-	ShortcutsInfo = "Restart (Esc)  Setup (Ctrl+S)  Exit (Ctrl+C)"
+	ShortcutsInfo = "Restart (Esc)   Exit (Ctrl+C)"
 )
 
 var (

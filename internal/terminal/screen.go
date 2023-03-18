@@ -1,9 +1,9 @@
 package terminal
 
 import (
+	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/cheatsnake/termboard/internal/termboard"
@@ -23,6 +23,7 @@ func MainScreen() {
 	}
 
 	tb := termboard.New(text.RandomText(defaultWords))
+	timer := termboard.NewTimer(60)
 	screen.SetStyle(tcell.StyleDefault)
 
 	for {
@@ -39,37 +40,41 @@ func MainScreen() {
 				tb.RemoveChar()
 				render(screen, tb)
 			} else if event.Key() == tcell.KeyEscape {
-				tb.Refresh(text.RandomText(defaultWords))
+				screen.Clear()
+				tb = termboard.New(text.RandomText(defaultWords))
 				render(screen, tb)
 			} else {
+				if timer.CurrentSeconds < 0 {
+					continue
+				}
+
 				tb.WriteChar(event.Rune())
 				render(screen, tb)
+
+				if tb.CharsTotal == 1 {
+					go drawTimer(timer, screen, tb)
+				}
 			}
 		}
 	}
 }
 
 func render(s tcell.Screen, c *termboard.Core) {
-	s.Clear()
-
-	if c.Validate() {
+	if len(c.Input) == len(c.Origin) {
 		c.Refresh(text.RandomText(defaultWords))
 	}
 
 	w, h := s.Size()
-	textPosX, textPosY := w/2-len(c.OriginText)/2, h/2-1
+	textPosX, textPosY := w/2-len(c.Origin)/2, h/2-1
+	clearLine(textPosY, s)
 
-	if len(c.Input) < 1 {
-		drawText(1, h-1, ShortcutsInfo, s, tcell.StyleDefault.Foreground(tcell.ColorDimGray))
-	}
-
-	drawTask(textPosX, textPosY, c.OriginText, string(c.Input), s, tcell.StyleDefault)
+	drawTask(textPosX, textPosY, c.Origin, string(c.Input), s, tcell.StyleDefault)
 	s.ShowCursor(textPosX+c.CursorPosition, textPosY)
 
 	s.Show()
 }
 
-func drawTask(x, y int, text, input string, screen tcell.Screen, style tcell.Style) {
+func drawTask(x, y int, text, input string, s tcell.Screen, style tcell.Style) {
 	posX := x
 	currentStyle := style
 
@@ -82,27 +87,49 @@ func drawTask(x, y int, text, input string, screen tcell.Screen, style tcell.Sty
 			}
 		}
 
-		screen.SetContent(posX, y, char, nil, currentStyle)
+		s.SetContent(posX, y, char, nil, currentStyle)
 		currentStyle = style
 		posX++
 	}
 }
 
-func drawText(x, y int, text string, screen tcell.Screen, style tcell.Style) {
+func drawText(x, y int, text string, s tcell.Screen, style tcell.Style) {
 	posX := x
 	for _, char := range text {
-		screen.SetContent(posX, y, char, nil, style)
+		s.SetContent(posX, y, char, nil, style)
 		posX++
 	}
 }
 
-func drawTimer(sec int, screen tcell.Screen) {
-	count := sec - 1
-	w, _ := screen.Size()
-	for count >= 0 {
-		drawText(w/2-1, 1, strconv.Itoa(count), screen, tcell.StyleDefault.Foreground(tcell.ColorYellow))
-		screen.Show()
+func drawTimer(t *termboard.Timer, s tcell.Screen, tb *termboard.Core) {
+	w, _ := s.Size()
+	for t.CurrentSeconds >= 0 {
+		drawText(w/2-(len(t.Output)/2), 1, t.Output, s, tcell.StyleDefault.Foreground(tcell.ColorYellow))
+		s.Show()
 		time.Sleep(time.Second)
-		count--
+		t.Tick()
+	}
+	drawStats(s, tb)
+}
+
+func drawStats(s tcell.Screen, tb *termboard.Core) {
+	s.Clear()
+	s.HideCursor()
+
+	w, h := s.Size()
+	speed := fmt.Sprintf("Speed: %.1f CPM", float64(tb.CharsTotal))
+	accuracy := fmt.Sprintf("Accuracy: %.1f%s", (1-float64(tb.CharsWrong)/float64(tb.CharsTotal))*100, "%")
+
+	drawText(0, h-1, ShortcutsInfo, s, tcell.StyleDefault.Foreground(tcell.ColorLightGray))
+	drawText(w/2-(len(speed)/2), h/2, speed, s, tcell.StyleDefault)
+	drawText(w/2-(len(speed)/2), h/2+1, accuracy, s, tcell.StyleDefault)
+
+	s.Show()
+}
+
+func clearLine(y int, s tcell.Screen) {
+	w, _ := s.Size()
+	for i := 0; i < w; i++ {
+		s.SetContent(i, y, ' ', nil, tcell.StyleDefault)
 	}
 }

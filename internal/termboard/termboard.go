@@ -1,25 +1,36 @@
 package termboard
 
 type Core struct {
-	OriginText     string
+	Origin         string
 	Input          []rune
+	CharsWrong     int
+	CharsTotal     int
 	CursorPosition int
 }
 
 func New(text string) *Core {
-	c := Core{
-		OriginText:     text,
-		CursorPosition: 0,
+	return &Core{
+		Origin:         text,
 		Input:          make([]rune, 0, len(text)),
+		CharsWrong:     0,
+		CharsTotal:     0,
+		CursorPosition: 0,
 	}
-
-	return &c
 }
 
 func (c *Core) WriteChar(char rune) {
-	if len(c.Input) < len(c.OriginText) {
-		c.Input = append(c.Input, char)
-		c.MoveRight()
+	// Input capacity if full
+	if len(c.Input) >= len(c.Origin) {
+		return
+	}
+
+	c.Input = append(c.Input, char)
+	c.MoveRight()
+
+	if char != rune(c.Origin[len(c.Input)-1]) {
+		c.CharsWrong++
+	} else {
+		c.CharsTotal++
 	}
 }
 
@@ -45,9 +56,5 @@ func (c *Core) MoveRight() {
 func (c *Core) Refresh(origin string) {
 	c.CursorPosition = 0
 	c.Input = nil
-	c.OriginText = origin
-}
-
-func (c *Core) Validate() bool {
-	return (len(c.Input) == len(c.OriginText)) && string(c.Input) == c.OriginText
+	c.Origin = origin
 }
