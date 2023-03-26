@@ -2,6 +2,8 @@
 
 Simple CLI application for training blind typing.
 
+<img src="https://i.ibb.co/CM09yRp/demo.gif" alt="demo"/>
+
 ## Running on your machine
 
 1. Clone this repo:
