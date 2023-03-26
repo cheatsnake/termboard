@@ -13,6 +13,7 @@ import (
 
 func MainScreen() {
 	screen, err := tcell.NewScreen()
+	seconds := 60
 
 	if err != nil {
 		log.Fatalf("%+v\n", err)
@@ -23,7 +24,7 @@ func MainScreen() {
 	}
 
 	tb := termboard.New(text.RandomText(defaultWords))
-	timer := termboard.NewTimer(60)
+	timer := termboard.NewTimer(seconds)
 	screen.SetStyle(tcell.StyleDefault)
 
 	for {
@@ -37,23 +38,32 @@ func MainScreen() {
 				screen.Fini()
 				os.Exit(0)
 			} else if event.Key() == tcell.KeyBackspace2 || event.Key() == tcell.KeyBackspace {
+				if timer.CurrentSeconds <= 0 {
+					continue
+				}
+
 				tb.RemoveChar()
 				render(screen, tb)
 			} else if event.Key() == tcell.KeyEscape {
+				if timer.CurrentSeconds > 0 {
+					return
+				}
 				screen.Clear()
 				tb = termboard.New(text.RandomText(defaultWords))
+				timer = termboard.NewTimer(seconds)
 				render(screen, tb)
 			} else {
-				if timer.CurrentSeconds < 0 {
+				if timer.CurrentSeconds <= 0 {
 					continue
+				}
+
+				if tb.CharsTotal == 0 {
+					go drawTimer(timer, screen, tb)
 				}
 
 				tb.WriteChar(event.Rune())
 				render(screen, tb)
 
-				if tb.CharsTotal == 1 {
-					go drawTimer(timer, screen, tb)
-				}
 			}
 		}
 	}
@@ -103,12 +113,14 @@ func drawText(x, y int, text string, s tcell.Screen, style tcell.Style) {
 
 func drawTimer(t *termboard.Timer, s tcell.Screen, tb *termboard.Core) {
 	w, _ := s.Size()
-	for t.CurrentSeconds >= 0 {
+
+	for t.CurrentSeconds > 0 {
 		drawText(w/2-(len(t.Output)/2), 1, t.Output, s, tcell.StyleDefault.Foreground(tcell.ColorYellow))
 		s.Show()
 		time.Sleep(time.Second)
 		t.Tick()
 	}
+
 	drawStats(s, tb)
 }
 
@@ -117,7 +129,7 @@ func drawStats(s tcell.Screen, tb *termboard.Core) {
 	s.HideCursor()
 
 	w, h := s.Size()
-	speed := fmt.Sprintf("Speed: %.1f CPM", float64(tb.CharsTotal))
+	speed := fmt.Sprintf("Speed: %d CPM / %d WPM", tb.CharsTotal, int(float64(tb.CharsTotal)/avgWordLength))
 	accuracy := fmt.Sprintf("Accuracy: %.1f%s", (1-float64(tb.CharsWrong)/float64(tb.CharsTotal))*100, "%")
 
 	drawText(0, h-1, ShortcutsInfo, s, tcell.StyleDefault.Foreground(tcell.ColorLightGray))
